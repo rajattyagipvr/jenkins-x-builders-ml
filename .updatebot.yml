@@ -1,5 +1,5 @@
 github:
   organisations:
-  - name: jenkins-x
+  - name: rajattyagipvr
     includes:
-    - jenkins-x-platform
+    - jxboot-helmfile-resources

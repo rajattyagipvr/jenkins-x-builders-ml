@@ -3,13 +3,50 @@ pipelineConfig:
   pipelines:
     pullRequest:
       pipeline:
+        # options:
+        #   containerOptions:
+        #     resources:
+        #       limits:
+        #         memory: 24Gi
+        #       requests:
+        #         memory: 16Gi
         options:
+          distributeParallelAcrossNodes: true
           containerOptions:
+            env:
+            - name: DOCKER_REGISTRY
+              valueFrom:
+                configMapKeyRef:
+                  key: docker.registry
+                  name: jenkins-x-docker-registry
+            - name: GIT_AUTHOR_EMAIL
+              value: jenkins-x@googlegroups.com
+            - name: GIT_AUTHOR_NAME
+              value: jenkins-x-bot
+            - name: GIT_COMMITTER_EMAIL
+              value: jenkins-x@googlegroups.com
+            - name: GIT_COMMITTER_NAME
+              value: jenkins-x-bot
+            - name: XDG_CONFIG_HOME
+              value: /home/jenkins
+            name: ""
             resources:
-              limits:
-                memory: 24Gi
               requests:
-                memory: 16Gi
+                cpu: 1200m
+                memory: 8Gi
+            securityContext:
+              privileged: true
+            volumeMounts:
+            - mountPath: /home/jenkins
+              name: workspace-volume
+            - mountPath: /kaniko/.docker
+              name: jenkins-docker-cfg
+          volumes:
+          - emptyDir: {}
+            name: workspace-volume
+          - name: jenkins-docker-cfg
+            secret:
+              secretName: jenkins-docker-cfg
         agent:
           image: gcr.io/kaniko-project/executor
         stages:
@@ -43,53 +80,90 @@ pipelineConfig:
               - name: ml
                 steps:
                 # cache base images
-                - name: warm-cache
-                  image: gcr.io/kaniko-project/warmer
-                  command: /kaniko/warmer
-                  args:
-                    - --cache-dir=/workspace
-                    - --image=gcr.io/jenkinsxio/builder-base:0.0.83
+                # - name: warm-cache
+                #   image: gcr.io/kaniko-project/warmer
+                #   command: /kaniko/warmer
+                #   args:
+                #     - --cache-dir=/workspace
+                #     - --image=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-base:0.0.93
 
                 # builders
                 - name: build-and-push-machine-learning
                   command: /kaniko/executor
                   args:
                     - --dockerfile=/workspace/source/builder-machine-learning/Dockerfile
-                    - --destination=gcr.io/jenkinsxio/builder-machine-learning:$(inputs.params.version)
+                    - --destination=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-machine-learning:$(inputs.params.version)
                     - --context=/workspace/source
-                    - --cache-repo=gcr.io/jenkinsxio/cache
+                    - --cache-repo=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/cache
                     - --cache=true
                     - --cache-dir=/workspace
-              - name: mlgpu
-                steps:
-                  # cache base images
-                  - name: warm-cache
-                    image: gcr.io/kaniko-project/warmer
-                    command: /kaniko/warmer
-                    args:
-                      - --cache-dir=/workspace
-                      - --image=gcr.io/jenkinsxio/builder-base:0.0.83
+              # - name: mlgpu
+              #   steps:
+              #     # cache base images
+              #     # - name: warm-cache
+              #     #   image: gcr.io/kaniko-project/warmer
+              #     #   command: /kaniko/warmer
+              #     #   args:
+              #     #     - --cache-dir=/workspace
+              #     #     - --image=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-base:0.0.93
 
-                  # builders
-                  - name: build-and-push-machine-learning-gpu
-                    command: /kaniko/executor
-                    args:
-                      - --dockerfile=/workspace/source/builder-machine-learning-gpu/Dockerfile
-                      - --destination=gcr.io/jenkinsxio/builder-machine-learning-gpu:$(inputs.params.version)
-                      - --context=/workspace/source
-                      - --cache-repo=gcr.io/jenkinsxio/cache
-                      - --cache=true
-                      - --cache-dir=/workspace
+              #     # builders
+              #     - name: build-and-push-machine-learning-gpu
+              #       command: /kaniko/executor
+              #       args:
+              #         - --dockerfile=/workspace/source/builder-machine-learning-gpu/Dockerfile
+              #         - --destination=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-machine-learning-gpu:$(inputs.params.version)
+              #         - --context=/workspace/source
+              #         - --cache-repo=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/cache
+              #         - --cache=true
+              #         - --cache-dir=/workspace
 
     release:
       pipeline:
+        # options:
+        #   containerOptions:
+        #     resources:
+        #       limits:
+        #         memory: 24Gi
+        #       requests:
+        #         memory: 16Gi
         options:
+          distributeParallelAcrossNodes: true
           containerOptions:
+            env:
+            - name: DOCKER_REGISTRY
+              valueFrom:
+                configMapKeyRef:
+                  key: docker.registry
+                  name: jenkins-x-docker-registry
+            - name: GIT_AUTHOR_EMAIL
+              value: jenkins-x@googlegroups.com
+            - name: GIT_AUTHOR_NAME
+              value: jenkins-x-bot
+            - name: GIT_COMMITTER_EMAIL
+              value: jenkins-x@googlegroups.com
+            - name: GIT_COMMITTER_NAME
+              value: jenkins-x-bot
+            - name: XDG_CONFIG_HOME
+              value: /home/jenkins
+            name: ""
             resources:
-              limits:
-                memory: 24Gi
               requests:
-                memory: 16Gi
+                cpu: 1200m
+                memory: 8Gi
+            securityContext:
+              privileged: true
+            volumeMounts:
+            - mountPath: /home/jenkins
+              name: workspace-volume
+            - mountPath: /kaniko/.docker
+              name: jenkins-docker-cfg
+          volumes:
+          - emptyDir: {}
+            name: workspace-volume
+          - name: jenkins-docker-cfg
+            secret:
+              secretName: jenkins-docker-cfg
         agent:
           image: gcr.io/kaniko-project/executor
         stages:
@@ -121,39 +195,39 @@ pipelineConfig:
                 value: jenkins-x-bot
             steps:
             # cache base images
-            - name: warm-cache
-              image: gcr.io/kaniko-project/warmer
-              command: /kaniko/warmer
-              args:
-                - --cache-dir=/workspace
-                - --image=gcr.io/jenkinsxio/builder-base:0.0.83
+            # - name: warm-cache
+            #   image: gcr.io/kaniko-project/warmer
+            #   command: /kaniko/warmer
+            #   args:
+            #     - --cache-dir=/workspace
+            #     - --image=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-base:0.0.93
 
             # builders
             - name: build-and-push-machine-learning
               command: /kaniko/executor
               args:
                 - --dockerfile=/workspace/source/builder-machine-learning/Dockerfile
-                - --destination=gcr.io/jenkinsxio/builder-machine-learning:$(inputs.params.version)
+                - --destination=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-machine-learning:$(inputs.params.version)
                 - --context=/workspace/source
-                - --cache-repo=gcr.io/jenkinsxio/cache
+                - --cache-repo=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/cache
                 - --cache=true
                 - --cache-dir=/workspace
-            - name: build-and-push-machine-learning-gpu
-              command: /kaniko/executor
-              args:
-                - --dockerfile=/workspace/source/builder-machine-learning-gpu/Dockerfile
-                - --destination=gcr.io/jenkinsxio/builder-machine-learning-gpu:$(inputs.params.version)
-                - --context=/workspace/source
-                - --cache-repo=gcr.io/jenkinsxio/cache
-                - --cache=true
-                - --cache-dir=/workspace
+            # - name: build-and-push-machine-learning-gpu
+            #   command: /kaniko/executor
+            #   args:
+            #     - --dockerfile=/workspace/source/builder-machine-learning-gpu/Dockerfile
+            #     - --destination=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-machine-learning-gpu:$(inputs.params.version)
+            #     - --context=/workspace/source
+            #     - --cache-repo=702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/cache
+            #     - --cache=true
+            #     - --cache-dir=/workspace
 
             # update downstream dependencies
             - name: update-bot
-              image: gcr.io/jenkinsxio/builder-maven
+              image: 702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-maven
               command: ./update-bot.sh
 
             # Create the release notes
             - name: changelog
-              image: gcr.io/jenkinsxio/builder-go
+              image: 702769831180.dkr.ecr.ap-south-1.amazonaws.com/702769831180/builder-go
               command: ./changelog.sh
